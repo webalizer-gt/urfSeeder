@@ -1,6 +1,6 @@
-urfSeeder
-=========
-This specialization adds under-root fertilisation to sowing machines in Farming Simulator 13. 
+urfSeeder v3
+============
+This specialization adds under-root fertilization to sowing machines in Farming Simulator 13. 
 
 Features: 
 - separate fertilizer tank 
