@@ -1,6 +1,6 @@
 --
--- urfSeeder 3
--- Class for moreRealistic sowing machines with under-root fertilization
+-- urfSeeder 4
+-- Class for (moreRealistic) sowing machines with under-root fertilization
 -- supports halfside shutoff and separate use of ridge markers
 --
 -- @author  Stefan Geiger
@@ -9,6 +9,7 @@
 -- @author  webalizer
 -- @date  v 2.0 11/08/13
 -- @date  v 3.0 19/12/13
+-- @date  v 4.0.01 13/08/14 support SoilMod
 --
 -- Copyright (C) GIANTS Software GmbH, Confidential, All Rights Reserved.
 
@@ -31,36 +32,52 @@ function UrfSeeder:load(xmlFile)
 	self.drawFillLevels = SpecializationUtil.callSpecializationsFunction("drawFillLevels");
 	self.wwMinMaxAreas = SpecializationUtil.callSpecializationsFunction("self.wwMinMaxAreas");
 	self.wwMinMaxAI = SpecializationUtil.callSpecializationsFunction("self.wwMinMaxAI");
-	self.createSprayingAreas = SpecializationUtil.callSpecializationsFunction("self.createSprayingAreas");
-	
+	self.setCurrentSprayFillType = SpecializationUtil.callSpecializationsFunction("self.setCurrentSprayFillType");
+
 	self.setSprayFillLevel = UrfSeeder.setSprayFillLevel;
-  	assert(self.setIsSprayerFilling == nil, "UrfSeeder needs to be the first specialization which implements setIsSprayerFilling");
-    self.setIsSprayerFilling = UrfSeeder.setIsSprayerFilling;
-    self.addSprayerFillTrigger = UrfSeeder.addSprayerFillTrigger;
-    self.removeSprayerFillTrigger = UrfSeeder.removeSprayerFillTrigger;
+  assert(self.setIsSprayerFilling == nil, "UrfSeeder needs to be the first specialization which implements setIsSprayerFilling");
+  self.setIsSprayerFilling = UrfSeeder.setIsSprayerFilling;
+  self.addSprayerFillTrigger = UrfSeeder.addSprayerFillTrigger;
+  self.removeSprayerFillTrigger = UrfSeeder.removeSprayerFillTrigger;
 	self.fillUpSprayer = UrfSeeder.fillUpSprayer;
 	self.wwMinMaxAreas = UrfSeeder.wwMinMaxAreas;
 	self.wwMinMaxAI = UrfSeeder.wwMinMaxAI;
-	self.createSprayingAreas = UrfSeeder.createSprayingAreas;
+	self.setCurrentSprayFillType = UrfSeeder.setCurrentSprayFillType;
 	self.setShutoff = UrfSeeder.setShutoff;
 
 	self.isUrfSeeder = Utils.getNoNil(getXMLBool(xmlFile, "vehicle.isUrfSeeder#value"), false);
-	
+
 	self.realSprayingReferenceSpeed = Utils.getNoNil(getXMLFloat(xmlFile, "vehicle.realSprayingReferenceSpeed"), 0)/3.6; -- km/h to m/s
 	self.sprayFillLitersPerSecond = Utils.getNoNil(getXMLFloat(xmlFile, "vehicle.sprayFillLitersPerSecond"), 50);
 	self.sprayCapacity = Utils.getNoNil(getXMLFloat(xmlFile, "vehicle.sprayCapacity"), 0.0);
 	self.sprayLitersPerSecond = Utils.getNoNil(getXMLFloat(xmlFile, "vehicle.sprayLitersPerSecond"), 7.2);
-	
+
+  -- Get allowed types of fertilizer for SoilMod
+  self.mySprays = {};
+  self.mySprayOverlays = {};
+  local sprayTypes = getXMLString(xmlFile, "vehicle.sprayFillTypes#fillTypes");
+  if sprayTypes ~= nil then
+      local types = Utils.splitString(" ", sprayTypes);
+      for k,v in pairs(types) do
+        local sprayType = Fillable.fillTypeNameToInt[v];
+        if sprayType ~= nil then
+          self.mySprays[k] = sprayType;
+        else
+          print("Warning: '"..self.configFileName.. "' has invalid sprayType '"..v.."'.");
+        end;
+      end;
+  end;
+
 	self.wwMin = 0;
 	self.wwMax = 0;
 	self.markerZPos = 0;
-	
+
 	self.wwMin,self.wwMax,y,z = self:wwMinMaxAI();
 	self.wwMin,self.wwMax,y,z = self:wwMinMaxAreas(self.cuttingAreas);
-	
+
 	self.wwY = y;
 	self.wwZ = z;
-	
+
 	local workWidth = math.abs(self.wwMax-self.wwMin);
 	if workWidth > .1 then
 		self.workWidth = math.floor(workWidth + 0.5);
@@ -69,19 +86,13 @@ function UrfSeeder:load(xmlFile)
 			self.wwCenter = 0;
 		end
 	end
-	
+
 	-- Check if present and set workwith of drivingLine
 	if self.smWorkwith ~= nil then
 		self.smWorkwith = self.workWidth;
 	end;
-	
-	if self.isUrfSeeder then
-		self.sprayingWidth = 0.2;
-		self.sprayingGap = 1.8;
 
-		--self.sprayingAreas = {}
-		--self.sprayingAreas = self:createSprayingAreas();
-		
+	if self.isUrfSeeder then
 		self.sprayFillType = "fertilizer";
 		self.currentSprayFillType = Fillable.fillTypeNameToInt[self.sprayFillType]
 		self.sprayFillLevel = 0;
@@ -90,40 +101,42 @@ function UrfSeeder:load(xmlFile)
 
 		self.sprayerFillTriggers = {};
 		self.sprayerFillActivatable = SprayerFillActivatable:new(self);
-			
+
 		self.xPos = Utils.getNoNil(getXMLFloat(xmlFile,  "vehicle.hudPos#posX"), 0.853);
 		self.yPos = Utils.getNoNil(getXMLFloat(xmlFile,  "vehicle.hudPos#posY"), 0.245);
 		self.hudBarWidth = 0.104;
-		
+
 		self.hudHalfOverlay = Overlay:new("hudHalfOverlay", Utils.getFilename("textures/half_fertilizer_hud.dds", UrfSeeder.DIR), self.xPos, self.yPos, 0.235, 0.039525);
 		self.hudNoneOverlay = Overlay:new("hudNoneOverlay", Utils.getFilename("textures/none_fertilizer_hud.dds", UrfSeeder.DIR), self.xPos, self.yPos, 0.235, 0.039525);
-		self.hudBgOverlay = Overlay:new("hudBgOverlay", Utils.getFilename("textures/fertilizer_bg.dds", UrfSeeder.DIR), self.xPos, self.yPos, 0.235, 0.039525);	
-		self.hudBarLimeOverlay = Overlay:new("hudBarLimeOverlay", Utils.getFilename("textures/lime_fertilizer_bar.dds", UrfSeeder.DIR), self.xPos + 0.028, self.yPos + 0.01, 0.21, 0.02190);
+		self.hudBgOverlay = Overlay:new("hudBgOverlay", Utils.getFilename("textures/fertilizer_bg.dds", UrfSeeder.DIR), self.xPos, self.yPos, 0.235, 0.039525);
+    self.hudBarLimeOverlay = Overlay:new("hudBarLimeOverlay", Utils.getFilename("textures/lime_fertilizer_bar.dds", UrfSeeder.DIR), self.xPos + 0.028, self.yPos + 0.01, 0.21, 0.02190);
+
 		self.hudBarRedOverlay = Overlay:new("hudBarRedOverlay", Utils.getFilename("textures/red_fertilizer_bar.dds", UrfSeeder.DIR), self.xPos + 0.028, self.yPos + 0.01, 0.21, 0.02190);
 	end;
 	self.textOn = string.format(g_i18n:getText("URF_ON"), self.typeDesc);
 	self.textOff = string.format(g_i18n:getText("URF_OFF"), self.typeDesc);
 	self.textFertilization = string.format(g_i18n:getText("URF_FERTILIZATION"), self.typeDesc);
-	
+  self.textFtype = string.format(g_i18n:getText("URF_FTYPE"), self.typeDesc);
+
 	--Halfside shutoff
 	self.textToggleshutoff = string.format(g_i18n:getText("URF_TOGGLESHUTOFF"), self.typeDesc);
 	self.textLeft = string.format(g_i18n:getText("URF_LEFT"), self.typeDesc);
 	self.textRight = string.format(g_i18n:getText("URF_RIGHT"), self.typeDesc);
-		
+
 	self.origCuttingAreas = table.copy(self.cuttingAreas);
 	self.rightCuttingAreas = table.copy(self.cuttingAreas);
 	self.leftCuttingAreas = table.copy(self.cuttingAreas);
-	
+
 	local numCuttingAreas = Utils.getNoNil(getXMLInt(xmlFile, "vehicle.cuttingAreas#count"), 0);
-    for i=1, numCuttingAreas do
-        local areanamei = string.format("vehicle.cuttingAreas.cuttingArea%d", i);
-		local areaside = Utils.getNoNil(getXMLString(xmlFile, areanamei.."#side"));
+  for i=1, numCuttingAreas do
+    local areanamei = string.format("vehicle.cuttingAreas.cuttingArea%d", i);
+    local areaside = Utils.getNoNil(getXMLString(xmlFile, areanamei.."#side"));
 		if areaside == "right" then
 			self.leftCuttingAreas[i] = nil;
 		elseif areaside == "left" then
 			self.rightCuttingAreas[i] = nil;
 		end;
-    end;
+  end;
 	self.shutoff = 0;
 end;
 
@@ -161,24 +174,27 @@ function UrfSeeder:delete()
 end;
 
 function UrfSeeder:readStream(streamId, connection)
-  	local shutoff = streamReadInt8(streamId);
+  local shutoff = streamReadInt8(streamId);
 	if self.isUrfSeeder then
 		local isSprayerFilling = streamReadBool(streamId);
 		local isFertilizing = streamReadBool(streamId);
 		local sprayFillLevel = streamReadInt32(streamId);
+    local currentSprayFillType = streamReadInt8(streamId);
 		self:setIsSprayerFilling(isSprayerFilling, true);
 		self:setIsFertilizing(isFertilizing, true);
 		self:setSprayFillLevel(sprayFillLevel, true);
+    self:setCurrentSprayFillType(currentSprayFillType, true);
 	end;
 	self:setShutoff(shutoff, true);
 end;
 
 function UrfSeeder:writeStream(streamId, connection)
-    streamWriteInt8(streamId, self.shutoff);
+  streamWriteInt8(streamId, self.shutoff);
 	if self.isUrfSeeder then
 		streamWriteBool(streamId, self.isSprayerFilling);
 		streamWriteBool(streamId, self.isFertilizing);
 		streamWriteInt32(streamId, self.sprayFillLevel);
+    streamWriteInt8(streamId, self.currentSprayFillType);
 	end;
 end;
 
@@ -192,6 +208,10 @@ function UrfSeeder:loadFromAttributesAndNodes(xmlFile, key, resetVehicles)
 		if sprayFillLevel ~= nil then
 			self.sprayFillLevel = sprayFillLevel;
 		end;
+    local currentSprayFillType = Utils.getNoNil(getXMLString(xmlFile, key.."#sprayFillType", "fertilizer"));
+    if currentSprayFillType ~= nil then
+      self.currentSprayFillType = Fillable.fillTypeNameToInt[currentSprayFillType];
+    end;
 		return BaseMission.VEHICLE_LOAD_OK;
 	end;
 end;
@@ -200,7 +220,8 @@ function UrfSeeder:getSaveAttributesAndNodes(nodeIdent)
 	if self.isUrfSeeder then
 		local fertilizationStatus = self.isFertilizing;
 		local sprayFillLevel = self.sprayFillLevel;
-		local attributes = 'fertilizationStatus="'..tostring(fertilizationStatus)..'" sprayFillLevel="'..sprayFillLevel..'"';
+    local currentSprayFillType = self.currentSprayFillType;
+		local attributes = 'fertilizationStatus="'..tostring(fertilizationStatus)..'" sprayFillLevel="'..sprayFillLevel..'" sprayFillType="'..tostring(Fillable.fillTypeIntToName[currentSprayFillType])..'"';
 		return attributes, nil;
 	end;
 end;
@@ -212,18 +233,22 @@ function UrfSeeder:mouseEvent(posX, posY, isDown, isUp, button)
 end;
 
 function UrfSeeder:update(dt)
-    if self:getIsActive() then
-        if self:getIsActiveForInput() then
+  if self:getIsActive() then
+    if self:getIsActiveForInput() then
 			if self.isUrfSeeder then
 				if InputBinding.hasEvent(InputBinding.URF_FERTILIZATION) then
 					local newState = not self.isFertilizing;
 					self:setIsFertilizing(newState);
 				end;
+        if InputBinding.hasEvent(InputBinding.URF_FTYPE) then
+          local currentSprayFillType = self.currentSprayFillType;
+          self:setCurrentSprayFillType(currentSprayFillType);
+        end;
 			end;
 			if self.ridgeMarkerState ~= nil then
 				if InputBinding.hasEvent(InputBinding.URF_RMleft) then
 					local rmState = self.ridgeMarkerState;
-					if rmState == 0 then 
+					if rmState == 0 then
 						rmState = 1;
 					else
 						rmState = 0;
@@ -232,7 +257,7 @@ function UrfSeeder:update(dt)
 				end;
 				if InputBinding.hasEvent(InputBinding.URF_RMright) then
 					local rmState = self.ridgeMarkerState;
-					if rmState == 0 then 
+					if rmState == 0 then
 						rmState = 2;
 					else
 						rmState = 0;
@@ -241,13 +266,13 @@ function UrfSeeder:update(dt)
 				end;
 			end;
 			if InputBinding.hasEvent(InputBinding.URF_TOGGLESHUTOFF) then
-              local shutoff = self.shutoff + 1;
-              if shutoff > 2 then
-                  shutoff = 0;
-              end;
+        local shutoff = self.shutoff + 1;
+        if shutoff > 2 then
+          shutoff = 0;
+        end;
 			  self:setShutoff(shutoff);
 			end;
-        end;
+    end;
 	end;
 end;
 
@@ -261,21 +286,21 @@ function UrfSeeder:updateTick(dt)
 				if self.isServer then
 					if self.isFertilizing then
 					--#### DECKER_MMIV ############################################################
--- Use 'fillType' in sprayer area event
-                      local fillType = self.currentSprayFillType;
-                      if fillType == Fillable.FILLTYPE_UNKNOWN then
-                          fillType = self:getFirstEnabledFillType();
-                      end
-
-                      --local litersPerSecond = self.sprayLitersPerSecond[self.currentFillType];
-                      --local litersPerSecond = self.sprayLitersPerSecond[fillType];
---#############################################################################
+          -- Use 'fillType' in sprayer area event
+            local fillType = self.currentSprayFillType;
+            if fillType == Fillable.FILLTYPE_UNKNOWN then
+              fillType = self:getFirstEnabledFillType();
+            end;
+            -- URF-seeder has it´s own litersPerSecond!
+            --local litersPerSecond = self.sprayLitersPerSecond[self.currentFillType];
+            --local litersPerSecond = self.sprayLitersPerSecond[fillType];
+            --#############################################################################
 						local litersPerSecond = self.sprayLitersPerSecond;
-						 
+
 						local usage = litersPerSecond * dt*0.001;
 						if self.isRealistic then
 							usage = usage * RealisticGlobalListener.realDifficultyFX8; -- hard / normal / easy = 1 / 1 / 0.5
-							if self.realSprayingReferenceSpeed>0 then						
+							if self.realSprayingReferenceSpeed>0 then
 								usage = usage * math.max(0.5, self.realGroundSpeed)/self.realSprayingReferenceSpeed;
 								--print(self.time .. " SprayingReferenceSpeed / usage = " .. tostring(self.realSprayingReferenceSpeed) .. " / " .. usage);
 							end;
@@ -309,7 +334,7 @@ function UrfSeeder:updateTick(dt)
 							elseif self.shutoff == 2 then
 								self.sprayAmount = self.leftCuttingAreas;
 							end;
-							
+
 							local sprayingAreasSend = {};
 							for _,sprayingArea in pairs(self.sprayAmount) do
 								if self:getIsAreaActive(sprayingArea) then
@@ -323,13 +348,13 @@ function UrfSeeder:updateTick(dt)
 								end;
 							end;
 							if (table.getn(sprayingAreasSend) > 0) then
---#### DECKER_MMIV ############################################################
--- Add 'fillType' to sprayer area event
-                              -- SprayerAreaEvent.runLocally(cuttingAreasSend);
-                              -- g_server:broadcastEvent(SprayerAreaEvent:new(cuttingAreasSend));
-								SprayerAreaEvent.runLocally(sprayingAreasSend, Fillable.FILLTYPE_FERTILIZER + 128);
-								g_server:broadcastEvent(SprayerAreaEvent:new(sprayingAreasSend, Fillable.FILLTYPE_FERTILIZER + 128));
---#############################################################################
+                --#### DECKER_MMIV ############################################################
+                -- Add 'fillType' to sprayer area event
+                -- SprayerAreaEvent.runLocally(sprayingAreasSend);
+                -- g_server:broadcastEvent(SprayerAreaEvent:new(sprayingAreasSend));
+								SprayerAreaEvent.runLocally(sprayingAreasSend, filltype + 128); -- +128 for use with growth state 0!
+								g_server:broadcastEvent(SprayerAreaEvent:new(sprayingAreasSend, filltype + 128));
+                --#############################################################################
 							end;
 						end;
 					end;
@@ -338,7 +363,6 @@ function UrfSeeder:updateTick(dt)
 		end;
 
 		if self.isServer and self.isSprayerFilling then
-
 			local delta = 0;
 			if self.sprayerFillTrigger ~= nil then
 				delta = self.sprayFillLitersPerSecond*dt*0.001;
@@ -360,17 +384,17 @@ function UrfSeeder:drawFillLevels()
 
 		-- render the hud overlays
 		self.hudBgOverlay:render();
-		
+
 		if percent > 10 then
 			self.hudBarOverlay = self.hudBarLimeOverlay;
 		else
 			self.hudBarOverlay = self.hudBarRedOverlay;
 		end;
-		
+
 		self.hudBarOverlay.width = self.hudBarWidth * (self.sprayFillLevel / self.sprayCapacity);
 		setOverlayUVs(self.hudBarOverlay.overlayId, 0, 0.05, 0, 1, self.sprayFillLevel / self.sprayCapacity, 0.05, self.sprayFillLevel / self.sprayCapacity, 1);
 		self.hudBarOverlay:render();
-		
+
 		if self.isFertilizing then
 			self.hudOverlay = self.hudHalfOverlay;
 		else
@@ -388,7 +412,7 @@ function UrfSeeder:drawFillLevels()
 			setTextColor(1, 1, 1, 1);
 		else
 			setTextColor(1, 0, 0, 1);
-		end;	
+		end;
 		renderText(self.xPos + 0.075, self.yPos + 0.013, 0.017, string.format("%d (%d%%)", level, percent));
 
 		setTextColor(1, 1, 1, 1);
@@ -401,6 +425,7 @@ function UrfSeeder:draw()
     if self.isClient then
         if self:getIsActiveForInput(true) then
 			if self.isUrfSeeder then
+        g_currentMission:addHelpButtonText(self.textFtype, InputBinding.URF_FTYPE);
 				if self.isFertilizing then
 					g_currentMission:addHelpButtonText(self.textFertilization .. " " .. self.textOff, InputBinding.URF_FERTILIZATION);
 				else
@@ -420,18 +445,23 @@ function UrfSeeder:draw()
         end;
 		if self.isUrfSeeder then
 			self:drawFillLevels();
-		end;
+
+      self.hudSprayOverlay = Overlay:new("hudSprayOverlay", g_currentMission.fillTypeOverlays[self.currentSprayFillType].filename, g_currentMission.fillTypeOverlays[self.currentSprayFillType].x - 0.075, g_currentMission.fillTypeOverlays[self.currentSprayFillType].y, g_currentMission.fillTypeOverlays[self.currentSprayFillType].width, g_currentMission.fillTypeOverlays[self.currentSprayFillType].height);
+      self.hudSprayOverlay:render();
     end;
+  end;
 end;
 
 function UrfSeeder:setSprayFillLevel(sprayFillLevel, noEventSend)
-    self.sprayFillLevel = sprayFillLevel;
-    if self.sprayFillLevel > self.sprayCapacity then
-        self.sprayFillLevel = self.sprayCapacity;
-    end;
-    if self.sprayFillLevel <= 0 then
-        self.sprayFillLevel = 0;
-    end;
+  self.sprayFillLevel = sprayFillLevel;
+  if self.sprayFillLevel > self.sprayCapacity then
+    self.sprayFillLevel = self.sprayCapacity;
+  end;
+  if self.sprayFillLevel <= 0 then
+    self.sprayFillLevel = 0;
+  end;
+  -- TODO: take mass of fertilizer into account
+
 	--synchronize fill level in mp
 	UrfSeederFillLevelEvent.sendEvent(self, self.sprayFillLevel, noEventSend);
 end;
@@ -440,6 +470,27 @@ function UrfSeeder:setIsFertilizing(urfState, noEventSend)
 	--synchronize fertilization state in mp
 	UrfSeederStateEvent.sendEvent(self, urfState, noEventSend);
 	self.isFertilizing = urfState;
+end;
+
+function UrfSeeder:setCurrentSprayFillType(currentSprayFillType, noEventSend)
+  local action = -1;
+  for i,sprayType in ipairs(self.mySprays) do
+    if sprayType ~= nil and sprayType == currentSprayFillType then
+      for k=0,table.getn(self.mySprays) do
+        i = (i % table.getn(self.mySprays))+1
+        if self.mySprays[i] then
+          action = self.mySprays[i];
+          break;
+        end;
+      end;
+      break;
+    end;
+  end;
+  if action >= 0 then
+    self.currentSprayFillType = action;
+  end;
+  --synchronize spray type in mp
+  UrfSeederSprayTypeEvent.sendEvent(self, self.currentSprayFillType, noEventSend);
 end;
 
 function UrfSeeder:setShutoff(shutoff, noEventSend)
@@ -456,21 +507,21 @@ function UrfSeeder:setShutoff(shutoff, noEventSend)
 end;
 
 function UrfSeeder:setIsSprayerFilling(isFilling, noEventSend)
-    SprayerSetIsFillingEvent.sendEvent(self, isFilling, noEventSend)
-    if self.isSprayerFilling ~= isFilling then
-        self.isSprayerFilling = isFilling;
-        if isFilling then
-            -- find the first trigger which is activable
-            self.sprayerFillTrigger = nil;
-            for i=1, table.getn(self.sprayerFillTriggers) do
-                local trigger = self.sprayerFillTriggers[i];
-                if (self.currentSprayFillType == trigger.fillType) or (trigger.isSiloTrigger and g_currentMission:getSiloAmount(trigger.fillType) > 0) then
-                    self.sprayerFillTrigger = trigger;
-                    break;
-                end;
+  SprayerSetIsFillingEvent.sendEvent(self, isFilling, noEventSend)
+  if self.isSprayerFilling ~= isFilling then
+    self.isSprayerFilling = isFilling;
+      if isFilling then
+        -- find the first trigger which is activable
+        self.sprayerFillTrigger = nil;
+          for i=1, table.getn(self.sprayerFillTriggers) do
+            local trigger = self.sprayerFillTriggers[i];
+            if (self.currentSprayFillType == trigger.fillType) or (trigger.isSiloTrigger and g_currentMission:getSiloAmount(trigger.fillType) > 0) then
+              self.sprayerFillTrigger = trigger;
+              break;
             end;
-        end
-    end;
+          end;
+      end:
+  end;
 end;
 
 function UrfSeeder:addSprayerFillTrigger(trigger)
@@ -502,13 +553,13 @@ function UrfSeeder:removeSprayerFillTrigger(trigger)
 end;
 
 function UrfSeeder:wwMinMaxAI()
-	
+
 	local x1,y1,z1,x2,y2,z2 = 0;
-	if self.aiLeftMarker ~= nil and self.aiRightMarker ~= nil then		
+	if self.aiLeftMarker ~= nil and self.aiRightMarker ~= nil then
 		x1,y1,z1 = getTranslation(self.aiLeftMarker)
 		x2,y2,z2 = getTranslation(self.aiRightMarker)
 		self.markerZPos = z1;
-		
+
 		if x1 < self.wwMin then
 			self.wwMin = x1;
 		end
@@ -522,124 +573,84 @@ function UrfSeeder:wwMinMaxAI()
 			self.wwMax = x2;
 		end
 	end
-	
+
 	return self.wwMin, self.wwMax, y1, z1;
 end;
 
 function UrfSeeder:wwMinMaxAreas(areas)
-
 	local x1,y1,z1,x2,y2,z2,x3,y3,z3 = 0;
 	if areas ~= nil then
 		for _,cuttingArea in pairs(areas) do
-			--if self:getIsAreaActive(cuttingArea) then
-
 				x1,y1,z1 = getTranslation(cuttingArea.start);
 				x2,y2,z2 = getTranslation(cuttingArea.width);
 				x3,y3,z3 = getTranslation(cuttingArea.height);
-				
+
 				if x1 < self.wwMin then
 					self.wwMin = x1;
-				end
+				end;
 				if x1 > self.wwMax then
 					self.wwMax = x1;
-				end
+				end;
 				if x2 < self.wwMin then
 					self.wwMin = x2;
-				end
+				end;
 				if x2 > self.wwMax then
 					self.wwMax = x2;
-				end
+				end;
 				if x3 < self.wwMin then
 					self.wwMin = x3;
-				end
+				end;
 				if x3 > self.wwMax then
 					self.wwMax = x3;
-				end
-			--end
+				end;
 		end;
 	end;
-
 	return self.wwMin, self.wwMax, y1, z1;
 end
-
-function UrfSeeder:createSprayingAreas()
-	self.sprayAreasCount = math.floor(self.workWidth / (self.sprayingWidth+self.sprayingGap));
-	local sprayAreas = {};
-	sprayAreas.left = {};
-	sprayAreas.right = {};
-	sprayAreas.full = {};
-	local x = self.wwMax - self.sprayingGap/2;
-	local y = self.wwY;
-	local z = self.markerZPos;
-	local hz = z - 2;
-	local xsave = 0;
-	for i=1, self.sprayAreasCount do
-		local startId = createTransformGroup("start"..i);
-		link(self.components[1].node, startId);
-		setTranslation(startId,x,y,z);
-		local heightId = createTransformGroup("height"..i);
-		link(self.components[1].node, heightId);
-		setTranslation(heightId,x,y,hz);
-		x = x - self.sprayingWidth;
-		xsave = x;
-		local widthId = createTransformGroup("width"..i);
-		link(self.components[1].node, widthId);
-		setTranslation(widthId,x,y,z);
-		x = x - self.sprayingGap;
-		if xsave > 0 then
-			table.insert(sprayAreas.left, {foldMinLimit=0,start=startId,height=heightId,foldMaxLimit=0.2,width=widthId});
-		elseif x <= 0 then
-			table.insert(sprayAreas.right, {foldMinLimit=0,start=startId,height=heightId,foldMaxLimit=0.2,width=widthId});
-		end;
-		table.insert(sprayAreas.full, {foldMinLimit=0,start=startId,height=heightId,foldMaxLimit=0.2,width=widthId});
-	end;
-	return sprayAreas;
-	
-end;
 
 SprayerFillActivatable = {}
 local SprayerFillActivatable_mt = Class(SprayerFillActivatable);
 
 function SprayerFillActivatable:new(sprayer)
-    local self = {};
-    setmetatable(self, SprayerFillActivatable_mt);
+  local self = {};
+  setmetatable(self, SprayerFillActivatable_mt);
 
-    self.sprayer = sprayer;
-    self.activateText = "unknown";
+  self.sprayer = sprayer;
+  self.activateText = "unknown";
 
-    return self;
+  return self;
 end;
 
 function SprayerFillActivatable:getIsActivatable()
-    if self.sprayer:getIsActiveForInput() and self.sprayer.sprayFillLevel < self.sprayer.sprayCapacity then
-        -- find the first trigger which is activable
-        for i=1, table.getn(self.sprayer.sprayerFillTriggers) do
-            local trigger = self.sprayer.sprayerFillTriggers[i];
-			if (self.sprayer.currentSprayFillType == trigger.fillType) or (trigger.isSiloTrigger and g_currentMission:getSiloAmount(trigger.fillType) > 0) then
-                self:updateActivateText();
-                return true;
-            end;
-        end;
-    end
-    return false;
+  if self.sprayer:getIsActiveForInput() and self.sprayer.sprayFillLevel < self.sprayer.sprayCapacity then
+    -- find the first trigger which is activable
+    for i=1, table.getn(self.sprayer.sprayerFillTriggers) do
+      local trigger = self.sprayer.sprayerFillTriggers[i];
+      if (self.sprayer.currentSprayFillType == trigger.fillType) or (trigger.isSiloTrigger and g_currentMission:getSiloAmount(trigger.fillType) > 0) then
+        self:updateActivateText();
+        return true;
+      end;
+    end;
+  end;
+  return false;
 end;
 
 function SprayerFillActivatable:onActivateObject()
-    self.sprayer:setIsSprayerFilling(not self.sprayer.isSprayerFilling);
-    self:updateActivateText();
-    g_currentMission:addActivatableObject(self);
+  self.sprayer:setIsSprayerFilling(not self.sprayer.isSprayerFilling);
+  self:updateActivateText();
+  g_currentMission:addActivatableObject(self);
 end;
 
 function SprayerFillActivatable:drawActivate()
-    -- TODO draw icon
+  -- TODO draw icon
 end;
 
 function SprayerFillActivatable:updateActivateText()
-    if self.sprayer.isSprayerFilling then
-        self.activateText = string.format(g_i18n:getText("URF_STOP_REFILL"), self.sprayer.typeDesc);
-    else
-        self.activateText = string.format(g_i18n:getText("URF_REFILL"), self.sprayer.typeDesc);
-    end;
+  if self.sprayer.isSprayerFilling then
+    self.activateText = string.format(g_i18n:getText("URF_STOP_REFILL"), self.sprayer.typeDesc);
+  else
+    self.activateText = string.format(g_i18n:getText("URF_REFILL"), self.sprayer.typeDesc);
+  end;
 end;
 
 function UrfSeeder:fillUpSprayer(deltax)
@@ -658,8 +669,8 @@ function UrfSeeder:fillUpSprayer(deltax)
 		deltax = self.sprayFillLevel - oldFillLevel;
 
 		local fillTypeDesc = Fillable.fillTypeIndexToDesc[self.sprayerFillTrigger.fillType];
-		
-		if fillTypeDesc ~= nil then	
+
+		if fillTypeDesc ~= nil then
 			local price = deltax*fillTypeDesc.pricePerLiter;
 			g_currentMission.missionStats.expensesTotal = g_currentMission.missionStats.expensesTotal + price;
 			g_currentMission.missionStats.expensesSession = g_currentMission.missionStats.expensesSession + price;

@@ -1,4 +1,18 @@
---MP-Events for specialization urfSeeder 3.0
+-- MP-Events for specialization urfSeeder 4.0
+--
+-- urfSeeder 4
+-- Class for (moreRealistic) sowing machines with under-root fertilization
+-- supports halfside shutoff and separate use of ridge markers
+--
+-- @author  Stefan Geiger
+-- @date  25/02/08
+--
+-- @author  webalizer
+-- @date  v 2.0 11/08/13
+-- @date  v 3.0 19/12/13
+-- @date  v 4.0.01 13/08/14 support SoilMod
+--
+-- Copyright (C) GIANTS Software GmbH, Confidential, All Rights Reserved.
 
 -- Fertilizer fill level
 UrfSeederFillLevelEvent = {};
@@ -23,7 +37,7 @@ function UrfSeederFillLevelEvent:readStream(streamId, connection)
     local id = streamReadInt32(streamId);
     self.vehicle = networkGetObject(id);
 	self.vehicle.sprayFillLevel = streamReadInt32(streamId);
-    
+
 	if not connection:getIsServer() then
         g_server:broadcastEvent(UrfSeederFillLevelEvent:new(self.vehicle, self.vehicle.sprayFillLevel), nil, connection, self.vehicle);
     end;
@@ -138,4 +152,52 @@ function UrfSeederShutoffEvent.sendEvent(vehicle, shutoff, noEventSend)
 			g_client:getServerConnection():sendEvent(UrfSeederShutoffEvent:new(vehicle, shutoff));
 		end;
 	end;
+end;
+
+-- fertilizer type
+UrfSeederSprayTypeEvent = {};
+UrfSeederSprayTypeEvent_mt = Class(UrfSeederSprayTypeEvent, Event);
+
+InitEventClass(UrfSeederSprayTypeEvent, "UrfSeederSprayTypeEvent");
+
+function UrfSeederSprayTypeEvent:emptyNew()
+    local self = Event:new(UrfSeederSprayTypeEvent_mt);
+    self.className="UrfSeederSprayTypeEvent";
+    return self;
+end;
+
+function UrfSeederSprayTypeEvent:new(vehicle, currentSprayFillType)
+    local self = UrfSeederSprayTypeEvent:emptyNew()
+    self.vehicle = vehicle;
+  self.currentSprayFillType = currentSprayFillType;
+    return self;
+end;
+
+function UrfSeederShutoffEvent:readStream(streamId, connection)
+    local id = streamReadInt32(streamId);
+    self.currentSprayFillType = streamReadInt8(streamId);
+    self.vehicle = networkGetObject(id);
+    self:run(connection);
+end;
+
+function UrfSeederSprayTypeEvent:writeStream(streamId, connection)
+    streamWriteInt32(streamId, networkGetObjectId(self.vehicle));
+  streamWriteInt8(streamId, self.currentSprayFillType);
+end;
+
+function UrfSeederSprayTypeEvent:run(connection)
+  self.vehicle:setCurrentSprayFillType(self.currentSprayFillType, true);
+    if not connection:getIsServer() then
+        g_server:broadcastEvent(UrfSeederSprayTypeEvent:new(self.vehicle, self.currentSprayFillType), nil, connection, self.object);
+    end;
+end;
+
+function UrfSeederSprayTypeEvent.sendEvent(vehicle, currentSprayFillType, noEventSend)
+  if noEventSend == nil or noEventSend == false then
+    if g_server ~= nil then
+      g_server:broadcastEvent(UrfSeederSprayTypeEvent:new(vehicle, currentSprayFillType), nil, nil, vehicle);
+    else
+      g_client:getServerConnection():sendEvent(UrfSeederSprayTypeEvent:new(vehicle, currentSprayFillType));
+    end;
+  end;
 end;
