@@ -285,18 +285,7 @@ function UrfSeeder:updateTick(dt)
 			if doGroundManipulation then
 				if self.isServer then
 					if self.isFertilizing then
-					--#### DECKER_MMIV ############################################################
-          -- Use 'fillType' in sprayer area event
-            local fillType = self.currentSprayFillType;
-            if fillType == Fillable.FILLTYPE_UNKNOWN then
-              fillType = self:getFirstEnabledFillType();
-            end;
-            -- URF-seeder has it´s own litersPerSecond!
-            --local litersPerSecond = self.sprayLitersPerSecond[self.currentFillType];
-            --local litersPerSecond = self.sprayLitersPerSecond[fillType];
-            --#############################################################################
 						local litersPerSecond = self.sprayLitersPerSecond;
-
 						local usage = litersPerSecond * dt*0.001;
 						if self.isRealistic then
 							usage = usage * RealisticGlobalListener.realDifficultyFX8; -- hard / normal / easy = 1 / 1 / 0.5
@@ -352,8 +341,8 @@ function UrfSeeder:updateTick(dt)
                 -- Add 'fillType' to sprayer area event
                 -- SprayerAreaEvent.runLocally(sprayingAreasSend);
                 -- g_server:broadcastEvent(SprayerAreaEvent:new(sprayingAreasSend));
-								SprayerAreaEvent.runLocally(sprayingAreasSend, filltype + 128); -- +128 for use with growth state 0!
-								g_server:broadcastEvent(SprayerAreaEvent:new(sprayingAreasSend, filltype + 128));
+								SprayerAreaEvent.runLocally(sprayingAreasSend, self.currentSprayFillType + 128); -- +128 for use with growth state 0!
+								g_server:broadcastEvent(SprayerAreaEvent:new(sprayingAreasSend, self.currentSprayFillType + 128));
                 --#############################################################################
 							end;
 						end;
@@ -520,7 +509,7 @@ function UrfSeeder:setIsSprayerFilling(isFilling, noEventSend)
               break;
             end;
           end;
-      end:
+      end;
   end;
 end;
 
