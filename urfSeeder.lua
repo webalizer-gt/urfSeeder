@@ -465,14 +465,12 @@ function UrfSeeder:setCurrentSprayFillType(currentSprayFillType, noEventSend)
   local action = -1;
   for i,sprayType in ipairs(self.mySprays) do
     if sprayType ~= nil and sprayType == currentSprayFillType then
-      for k=0,table.getn(self.mySprays) do
         i = (i % table.getn(self.mySprays))+1
         if self.mySprays[i] then
           action = self.mySprays[i];
           break;
         end;
-      end;
-      break;
+    break;
     end;
   end;
   if action >= 0 then
