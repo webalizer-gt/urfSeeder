@@ -94,7 +94,7 @@ function UrfSeeder:load(xmlFile)
 
 	if self.isUrfSeeder then
 		self.sprayFillType = "fertilizer";
-		self.currentSprayFillType = Fillable.fillTypeNameToInt[self.sprayFillType]
+		self.currentSprayFillType = Fillable.fillTypeNameToInt[self.sprayFillType];
 		self.sprayFillLevel = 0;
 		self.isSprayerFilling = false;
 		self.isFertilizing = true;
@@ -105,6 +105,10 @@ function UrfSeeder:load(xmlFile)
 		self.xPos = Utils.getNoNil(getXMLFloat(xmlFile,  "vehicle.hudPos#posX"), 0.853);
 		self.yPos = Utils.getNoNil(getXMLFloat(xmlFile,  "vehicle.hudPos#posY"), 0.245);
 		self.hudBarWidth = 0.104;
+
+    self.sprayHud = {};
+    self.sprayHud.width = g_currentMission.hudTipperOverlay.width * 1.25;
+    self.sprayHud.height = g_currentMission.hudTipperOverlay.height * 1.25;
 
 		self.hudHalfOverlay = Overlay:new("hudHalfOverlay", Utils.getFilename("textures/half_fertilizer_hud.dds", UrfSeeder.DIR), self.xPos, self.yPos, 0.235, 0.039525);
 		self.hudNoneOverlay = Overlay:new("hudNoneOverlay", Utils.getFilename("textures/none_fertilizer_hud.dds", UrfSeeder.DIR), self.xPos, self.yPos, 0.235, 0.039525);
@@ -140,6 +144,7 @@ function UrfSeeder:load(xmlFile)
 	self.shutoff = 0;
 end;
 
+
 function table.copy(t)
   local t2 = {};
   for k,v in pairs(t) do
@@ -169,6 +174,9 @@ function UrfSeeder:delete()
 		if self.hudNoneOverlay then
 			self.hudNoneOverlay:delete();
 		end;
+    if self.hudSprayOverlay then
+      self.hudSprayOverlay:delete();
+    end;
 		g_currentMission:removeActivatableObject(self.sprayerFillActivatable);
 	end;
 end;
@@ -240,9 +248,21 @@ function UrfSeeder:update(dt)
 					local newState = not self.isFertilizing;
 					self:setIsFertilizing(newState);
 				end;
+
         if InputBinding.hasEvent(InputBinding.URF_FTYPE) then
           local currentSprayFillType = self.currentSprayFillType;
-          self:setCurrentSprayFillType(currentSprayFillType);
+          local action = -1;
+          for i,sprayType in ipairs(self.mySprays) do
+            if sprayType ~= nil and sprayType == currentSprayFillType then
+                i = (i % table.getn(self.mySprays))+1
+                if self.mySprays[i] then
+                  action = self.mySprays[i];
+                  break;
+                end;
+            break;
+            end;
+          end;
+          self:setCurrentSprayFillType(action);
         end;
 			end;
 			if self.ridgeMarkerState ~= nil then
@@ -407,7 +427,10 @@ function UrfSeeder:drawFillLevels()
 		setTextColor(1, 1, 1, 1);
 		setTextAlignment(RenderText.ALIGN_LEFT);
 		setTextBold(false);
-	end;
+
+    self.hudSprayOverlay = Overlay:new("hudSprayOverlay", Fillable.fillTypeIndexToDesc[self.currentSprayFillType].hudOverlayFilename, 0.85, 0.28, self.sprayHud.width, self.sprayHud.height);
+    self.hudSprayOverlay:render();
+  end;
 end;
 
 function UrfSeeder:draw()
@@ -434,9 +457,6 @@ function UrfSeeder:draw()
         end;
 		if self.isUrfSeeder then
 			self:drawFillLevels();
-
-      self.hudSprayOverlay = Overlay:new("hudSprayOverlay", g_currentMission.fillTypeOverlays[self.currentSprayFillType].filename, g_currentMission.fillTypeOverlays[self.currentSprayFillType].x - 0.075, g_currentMission.fillTypeOverlays[self.currentSprayFillType].y, g_currentMission.fillTypeOverlays[self.currentSprayFillType].width, g_currentMission.fillTypeOverlays[self.currentSprayFillType].height);
-      self.hudSprayOverlay:render();
     end;
   end;
 end;
@@ -462,19 +482,9 @@ function UrfSeeder:setIsFertilizing(urfState, noEventSend)
 end;
 
 function UrfSeeder:setCurrentSprayFillType(currentSprayFillType, noEventSend)
-  local action = -1;
-  for i,sprayType in ipairs(self.mySprays) do
-    if sprayType ~= nil and sprayType == currentSprayFillType then
-        i = (i % table.getn(self.mySprays))+1
-        if self.mySprays[i] then
-          action = self.mySprays[i];
-          break;
-        end;
-    break;
-    end;
-  end;
-  if action >= 0 then
-    self.currentSprayFillType = action;
+
+  if currentSprayFillType >= 0 then
+    self.currentSprayFillType = currentSprayFillType;
   end;
   --synchronize spray type in mp
   UrfSeederSprayTypeEvent.sendEvent(self, self.currentSprayFillType, noEventSend);

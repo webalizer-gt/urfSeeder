@@ -173,7 +173,7 @@ function UrfSeederSprayTypeEvent:new(vehicle, currentSprayFillType)
     return self;
 end;
 
-function UrfSeederShutoffEvent:readStream(streamId, connection)
+function UrfSeederSprayTypeEvent:readStream(streamId, connection)
     local id = streamReadInt32(streamId);
     self.currentSprayFillType = streamReadInt8(streamId);
     self.vehicle = networkGetObject(id);
