@@ -1,0 +1,162 @@
+urfSeeder is a specialization for Farming Simulator 2013.
+Version 4 adds under-root fertilization to sowing machines for use with SoilMod (Soil Management & Growth Control 1.2.x by Decker_MMIV)
+
+**********************************************************
+IF YOU DON´T USE SoilMod IT WILL NOT WORK! Use v3 instead.
+**********************************************************
+
+Features:
+- separate fertilizer tank
+- enable/disable fertilization
+- change fertilizer type (A/B/C)
+- halfside shutoff for realistic creation of driving lines
+- separate use of ridge markers
+
+Instructions:
+- Make a backup of your sowing machine!
+- Extract urfSeeder_v4.zip to a folder of your choice. Copy the folders „graphics“ and „scripts“ into the folder of your sowing machine.
+
+1. Editing [yourmod].xml of the sowing machine
+1.1   Open the xml file wich has the name of your sowing machine (e.g. amazone_edx6000.xml) in your text editor.
+1.2   Paste the lines from between <!--TEXT 1-----> above the last line </vehicle>.
+      - <isUrfSeeder> defines if fertilization is used (true) or not (false). false is set
+        if only halfside shutoff and the ridege marker controls should be used. In this case all following entries are not necessary.
+      - <sprayFillTypes> are the possible types of fertilizer for SoilMod.
+      - <realSprayingReferenceSpeed> defines speed controlled amount of fertilizer on moreRealistic sowing machines.
+      - <sprayCapacity> guess what - it´s the capacity of the fertilizer tank.
+      - <sprayFillLitersPerSecond> fill speed on fertilizer trigger.
+      - <sprayLitersPerSecond> used fertilizer per second.
+      - With <hudPos posX=“0.853“ posY=“0.245“ /> the position of the capacity hud can be changed.
+1.3   Find the <cuttingAreas>. To use halfside shutoff there have to be two cuttingAreas.
+1.4   Add <cuttingArea1 ....... side="right" /> and <cuttingArea1 ....... side="left" /> on the other cuttingArea.
+      Note: Which side is left or right can be seen by opening the i3d in Giants Editor.
+1.3   Save the xml.
+
+2. Editing modDesc.xml of the sowing machine
+2.1   Open modDesc.xml in text editor.
+2.2   Find lines <l10n> and </ l10n>. If not there create them before </modDesc>.
+2.3   Between this two lines paste the text from between <!--TEXT 2----->.
+2.4   Find lines <inputBindings> and </ inputBindings>. If not there create them before </modDesc>.
+2.5   Between this two lines paste the text from between <!--TEXT 3----->.
+2.6   Find lines <specializations> and </specializations>. If not there create them before </modDesc>.
+2.7   Between this two lines paste the text from between <!--TEXT 4----->.
+2.8   Find lines <extraSourceFiles> and </extraSourceFiles>. If not there create them before </modDesc>.
+2.9   Between this two lines paste the text from between <!--TEXT 5----->.
+2.10  Find the four lines <vehicleTypes><type name=“... and </ type></vehicleTypes>.
+2.11  Between this four lines paste the text from between <!--TEXT 6----->.
+2.12  If those four lines aren´t there look in the xml-file of the sowing machine (second line) which 'type' is given.
+      If it´s „sowingMachine“ insert the lines from between <!--TEXT 6.1-----> into moddesc.xml before the last line </modDesc>.
+      If it´s „sowingMachine_animated“ use the lines from between <!--TEXT 6.2----->.
+      IMPORTANT: Replace the vehicle type „sowingMachine“ or „sowingMachine_animated“
+      in the the xml-file (second line) and the modDesc.xml (TEXT 6.x) with „urfSeeder“.
+2.13  Save modDesc.xml.
+
+3. Finishing tasks
+3.1   Select all files in the mod folder and compress them into a zip-file and name it unique.
+3.2   Now you can insert your mod ino the mod directory of farming simulator.
+
+
+<!-- TEXT 1------------------------------------------------------------------------------------------------------------->
+  <!--urfSeeder-->
+  <isUrfSeeder value="true" />
+  <sprayFillTypes fillTypes="fertilizer fertilizer2 fertilizer3" />
+  <realSprayingReferenceSpeed>10</realSprayingReferenceSpeed>
+  <sprayCapacity>1100</sprayCapacity>
+  <sprayFillLitersPerSecond>50</sprayFillLitersPerSecond>
+  <sprayLitersPerSecond>0.5</sprayLitersPerSecond>
+  <hudPos posX="0.853" posY="0.245" />
+<!-- ENDE TEXT 1-------------------------------------------------------------------------------------------------------->
+
+<!-- TEXT 2------------------------------------------------------------------------------------------------------------->
+    <text name="URF_FERTILIZATION">
+      <de>Düngen</de>
+      <en>Fertilization</en>
+    </text>
+    <text name="URF_FTYPE">
+      <de>Düngertyp auswählen</de>
+      <en>Select spray-type</en>
+    </text>
+    <text name="URF_ON">
+      <de>an</de>
+      <en>on</en>
+    </text>
+    <text name="URF_OFF">
+      <de>aus</de>
+      <en>off</en>
+    </text>
+    <text name="URF_STOP_REFILL">
+        <de>Auffüllen stoppen</de>
+      <en>Stop filling</en>
+    </text>
+    <text name="URF_REFILL">
+        <de>Dünger auffüllen</de>
+      <en>Fill fertilizer</en>
+    </text>
+    <text name="URF_RMleft">
+            <en>Ridgemarker left</en>
+            <de>Spuranreisser links</de>
+        </text>
+    <text name="URF_RMright">
+            <en>Ridgemarker right</en>
+            <de>Spuranreisser rechts</de>
+        </text>
+    <text name="URF_TOGGLESHUTOFF">
+            <en>Toggle halfside shutoff</en>
+            <de>Halbseitige Abschaltung</de>
+        </text>
+    <text name="URF_RIGHT">
+            <en>right</en>
+            <de>rechts</de>
+        </text>
+    <text name="URF_LEFT">
+            <en>left</en>
+            <de>links</de>
+        </text>
+<!-- ENDE TEXT 2-------------------------------------------------------------------------------------------------------->
+
+<!-- TEXT 3------------------------------------------------------------------------------------------------------------->
+    <input name="URF_FERTILIZATION" category="VEHICLE" key1="KEY_lshift KEY_o" key2="" button="" device="0" mouse="" />
+    <input name="URF_FTYPE" category="VEHICLE" key1="KEY_lalt KEY_o" key2="" button="" device="0" mouse="" />
+    <input name="URF_RMleft" category="VEHICLE" key1="KEY_semicolon" key2="" button="" device="0" mouse="" />
+    <input name="URF_RMright" category="VEHICLE" key1="KEY_quote" key2="" button="" device="0" mouse="" />
+    <input name="URF_TOGGLESHUTOFF" category="VEHICLE" key1="KEY_rightbracket" key2="" button="" device="0" mouse="" />
+<!-- END TEXT 3-------------------------------------------------------------------------------------------------------->
+
+<!-- TEXT 4------------------------------------------------------------------------------------------------------------->
+        <specialization name="urfSeeder" className="UrfSeeder" filename="scripts/urfSeeder.lua"/>
+<!-- END TEXT 4-------------------------------------------------------------------------------------------------------->
+
+<!-- TEXT 5------------------------------------------------------------------------------------------------------------->
+    <sourceFile filename="scripts/UrfSeederEvents.lua" />
+<!-- END TEXT 5-------------------------------------------------------------------------------------------------------->
+
+<!-- TEXT 6------------------------------------------------------------------------------------------------------------->
+      <specialization name="urfSeeder" />
+<!-- END TEXT 6-------------------------------------------------------------------------------------------------------->
+
+<!-- TEXT 6.1----------------------------------------------------------------------------------------------------------->
+  <vehicleTypes>
+    <type name="urfSeeder" className="Vehicle" filename="$dataS/scripts/vehicles/Vehicle.lua">
+         <specialization name="attachable" />
+         <specialization name="fillable" />
+         <specialization name="sowingMachine" />
+         <specialization name="foldable" />
+      <specialization name="urfSeeder" />
+    </type>
+  </vehicleTypes>
+<!-- END TEXT 6.1------------------------------------------------------------------------------------------------------>
+
+<!-- TEXT 6.2----------------------------------------------------------------------------------------------------------->
+    <vehicleTypes>
+      <type name="urfSeeder" className="Vehicle" filename="$dataS/scripts/vehicles/Vehicle.lua">
+      <specialization name="fillable" />
+      <specialization name="attachable" />
+      <specialization name="animatedVehicle" />
+      <specialization name="cylindered" />
+      <specialization name="foldable" />
+      <specialization name="ridgeMarker" />
+      <specialization name="sowingMachine" />
+      <specialization name="urfSeeder" />
+        </type>
+    </vehicleTypes>
+<!-- END TEXT 6.2------------------------------------------------------------------------------------------------------>

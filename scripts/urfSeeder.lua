@@ -110,12 +110,11 @@ function UrfSeeder:load(xmlFile)
     self.sprayHud.width = g_currentMission.hudTipperOverlay.width * 1.25;
     self.sprayHud.height = g_currentMission.hudTipperOverlay.height * 1.25;
 
-		self.hudHalfOverlay = Overlay:new("hudHalfOverlay", Utils.getFilename("textures/half_fertilizer_hud.dds", UrfSeeder.DIR), self.xPos, self.yPos, 0.235, 0.039525);
-		self.hudNoneOverlay = Overlay:new("hudNoneOverlay", Utils.getFilename("textures/none_fertilizer_hud.dds", UrfSeeder.DIR), self.xPos, self.yPos, 0.235, 0.039525);
-		self.hudBgOverlay = Overlay:new("hudBgOverlay", Utils.getFilename("textures/fertilizer_bg.dds", UrfSeeder.DIR), self.xPos, self.yPos, 0.235, 0.039525);
-    self.hudBarLimeOverlay = Overlay:new("hudBarLimeOverlay", Utils.getFilename("textures/lime_fertilizer_bar.dds", UrfSeeder.DIR), self.xPos + 0.028, self.yPos + 0.01, 0.21, 0.02190);
-
-		self.hudBarRedOverlay = Overlay:new("hudBarRedOverlay", Utils.getFilename("textures/red_fertilizer_bar.dds", UrfSeeder.DIR), self.xPos + 0.028, self.yPos + 0.01, 0.21, 0.02190);
+		self.hudHalfOverlay = Overlay:new("hudHalfOverlay", Utils.getFilename("graphics/half_fertilizer_hud.dds", UrfSeeder.DIR), self.xPos, self.yPos, 0.235, 0.039525);
+		self.hudNoneOverlay = Overlay:new("hudNoneOverlay", Utils.getFilename("graphics/none_fertilizer_hud.dds", UrfSeeder.DIR), self.xPos, self.yPos, 0.235, 0.039525);
+		self.hudBgOverlay = Overlay:new("hudBgOverlay", Utils.getFilename("graphics/fertilizer_bg.dds", UrfSeeder.DIR), self.xPos, self.yPos, 0.235, 0.039525);
+    self.hudBarLimeOverlay = Overlay:new("hudBarLimeOverlay", Utils.getFilename("graphics/lime_fertilizer_bar.dds", UrfSeeder.DIR), self.xPos + 0.028, self.yPos + 0.01, 0.21, 0.02190);
+		self.hudBarRedOverlay = Overlay:new("hudBarRedOverlay", Utils.getFilename("graphics/red_fertilizer_bar.dds", UrfSeeder.DIR), self.xPos + 0.028, self.yPos + 0.01, 0.21, 0.02190);
 	end;
 	self.textOn = string.format(g_i18n:getText("URF_ON"), self.typeDesc);
 	self.textOff = string.format(g_i18n:getText("URF_OFF"), self.typeDesc);

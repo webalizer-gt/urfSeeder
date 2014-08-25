@@ -1,0 +1,162 @@
+urfSeeder ist eine Specialization für Landwirtschafts-Simulator 2013.
+Version 4 fügt Unterfußdüngung zu Sämaschinen hinzu, um sie zusammen mit SoilMod (Soil Management & Growth Control 1.2.x by Decker_MMIV) zu nutzen!
+
+******************************************************************************************
+WENN DU DEN SOILMOD NICHT VERWENDEST, WIRD DIESE VERSION NICHT FUNKTIONIEREN! Verwende V3.
+******************************************************************************************
+
+Features:
+- getrennter Düngertank
+- Düngung ein-/ausschalten
+- Düngertyp wechseln (A/B/C)
+- Halbseitige Abschaltung der Maschine zum korrekten Anlegen von Fahrgassen
+- getrennte Schaltung von Spurreissern
+
+Anleitung:
+- Sicherheitskopie der Sämaschine erstellen!!
+- Die ZIP-Datei urfSeeder_v4.zip in ein beliebiges Verzeichnis entpacken. Die Ordner „textures“ und „scripts“ in den Ordner der Sämaschine kopieren.
+
+1. Bearbeiten der [deinmod].xml-Datei der Sämaschine
+1.1   Öffnet die xml-Datei, die den Namen der Sämaschine trägt, mit dem Texteditor. (nicht die Datei modDesc.xml oder andere)
+1.2   Fügt über der letzten Zeile </vehicle> die Zeilen ZWISCHEN <!--TEXT 1-----> aus dieser Datei ein.
+      - Bei <isUrfSeeder> kann eingestellt werden, ob die Düngefunktion verwendet wird (true) oder nicht (false). false wird verwendet,
+      wenn nur die halbseitige Abschaltung und die Steuerung der Spuranreisser verwendet werden soll. Dann können alle folgenden Werte weggelassen werden.
+      - Bei <sprayFillTypes> sind die möglichen Düngersorten für SoilMod angegeben.
+      - Der Wert <realSprayingReferenceSpeed> regelt bei moreRealistic-Maschinen die Geschwindigkeitsabhängige Düngermenge.
+      - Der Wert <sprayCapacity> gibt die Größe des Düngertanks an.
+      - Der Wert <sprayFillLitersPerSecond> gibt die Füllgeschwindigkeit am Düngertrigger an.
+      - Der Wert <sprayLitersPerSecond> gibt an, wieviel Dünger pro Sekunde verbraucht wird.
+      - Über <hudPos posX=“0.853“ posY=“0.245“ /> kann bei Bedarf die Position der Düngeranzeige geändert werden.
+1.3   Sucht die <cuttingAreas>. Um die halbseitige Abschaltung zu nutzen, müssen zwei cuttingAreas vorhanden sein.
+1.4   Fügt bei einer <cuttingArea1 ....... side="right" /> und bei der anderen <cuttingArea1 ....... side="left" /> hinzu.
+      Hinweis: welche Seite links oder rechts ist, kann man in der i3d im Giants Editor herausfinden.
+1.3   Speichert die xml-Datei ab.
+
+2. Bearbeiten der modDesc.xml der Sämaschine
+2.1   Öffnet die Datei modDesc.xml der Sämaschine mit dem Texteditor.
+2.2   Sucht die Zeilen <l10n> und </ l10n>, sind diese nicht vorhanden, erstellt ihr sie einfach über der letzten Zeile </modDesc>.
+2.3   Zwischen diesen beiden Zeilen fügt ihr die Zeilen ZWISCHEN <!--TEXT 2-----> ein.
+2.4   Sucht die Zeilen <inputBindings> und </ inputBindings>, sind diese nicht vorhanden, erstellt ihr sie einfach über der letzten Zeile </modDesc>.
+2.5   Zwischen diesen beiden Zeilen fügt ihr die Zeilen ZWISCHEN <!--TEXT 3-----> ein.
+2.6   Sucht die Zeilen <specializations> und </specializations>, sind diese nicht vorhanden, erstellt ihr sie einfach über der letzten Zeile </modDesc>.
+2.7   Zwischen diesen beiden Zeilen fügt ihr die Zeile ZWISCHEN <!--TEXT 4-----> ein.
+2.8   Sucht die Zeilen <extraSourceFiles> und </extraSourceFiles>, sind diese nicht vorhanden, erstellt ihr sie einfach über der letzten Zeile </modDesc>.
+2.9   Zwischen diesen beiden Zeilen fügt ihr die Zeile ZWISCHEN <!--TEXT 5-----> ein.
+2.10  Sucht die Zeilen <vehicleTypes><type name=“... und </ type></vehicleTypes>.
+2.11  Zwischen diesen vier Zeilen fügt ihr als letztes die Zeile ZWISCHEN <!--TEXT 6-----> ein.
+2.12  Sind diese vier Zeilen nicht vorhanden, schaut ihr in die xml-Datei der Sämaschine (zweite Zeile) welcher Name bei 	type=“ ...“ eingetragen ist.
+      Steht dort „sowingMachine“, tragt ihr die Zeilen ZWISCHEN <!--TEXT 6.1-----> in die modDesc.xml über der letzten Zeile </modDesc> ein.
+      Steht dort „sowingMachine_animated“, tragt ihr die Zeilen ZWISCHEN <!--TEXT 6.2------> in die modDesc.xml über der letzten Zeile </modDesc> ein.
+      WICHTIG: Ersetzt in der xml-Datei der Sämaschine (zweite Zeile) und in der modDesc.xml (TEXT 6.x)
+      den Namen „sowingMachine“ bzw. „sowingMachine_animated“ durch „urfSeeder“.
+2.13  Speichert die Datei modDesc.xml ab.
+
+3. Abschließende Arbeiten
+3.1   Markiert alle Dateien im Mod-Ordner, packt sie mit Hilfe des Komprimierungsprogramms wieder zu einer Zip-Datei und vergebt einen aussagekräftigen Namen.
+3.2   Die Zip-Datei kann jetzt in den mods-Ordner eingefügt werden.
+
+
+<!-- TEXT 1------------------------------------------------------------------------------------------------------------->
+  <!--urfSeeder-->
+  <isUrfSeeder value="true" />
+  <sprayFillTypes fillTypes="fertilizer fertilizer2 fertilizer3" />
+  <realSprayingReferenceSpeed>10</realSprayingReferenceSpeed>
+  <sprayCapacity>1100</sprayCapacity>
+  <sprayFillLitersPerSecond>50</sprayFillLitersPerSecond>
+  <sprayLitersPerSecond>0.5</sprayLitersPerSecond>
+  <hudPos posX="0.853" posY="0.245" />
+<!-- ENDE TEXT 1-------------------------------------------------------------------------------------------------------->
+
+<!-- TEXT 2------------------------------------------------------------------------------------------------------------->
+    <text name="URF_FERTILIZATION">
+      <de>Düngen</de>
+      <en>Fertilization</en>
+    </text>
+    <text name="URF_FTYPE">
+      <de>Düngertyp auswählen</de>
+      <en>Select spray-type</en>
+    </text>
+    <text name="URF_ON">
+      <de>an</de>
+      <en>on</en>
+    </text>
+    <text name="URF_OFF">
+      <de>aus</de>
+      <en>off</en>
+    </text>
+    <text name="URF_STOP_REFILL">
+        <de>Auffüllen stoppen</de>
+      <en>Stop filling</en>
+    </text>
+    <text name="URF_REFILL">
+        <de>Dünger auffüllen</de>
+      <en>Fill fertilizer</en>
+    </text>
+    <text name="URF_RMleft">
+            <en>Ridgemarker left</en>
+            <de>Spuranreisser links</de>
+        </text>
+    <text name="URF_RMright">
+            <en>Ridgemarker right</en>
+            <de>Spuranreisser rechts</de>
+        </text>
+    <text name="URF_TOGGLESHUTOFF">
+            <en>Toggle halfside shutoff</en>
+            <de>Halbseitige Abschaltung</de>
+        </text>
+    <text name="URF_RIGHT">
+            <en>right</en>
+            <de>rechts</de>
+        </text>
+    <text name="URF_LEFT">
+            <en>left</en>
+            <de>links</de>
+        </text>
+<!-- ENDE TEXT 2-------------------------------------------------------------------------------------------------------->
+
+<!-- TEXT 3------------------------------------------------------------------------------------------------------------->
+    <input name="URF_FERTILIZATION" category="VEHICLE" key1="KEY_lshift KEY_o" key2="" button="" device="0" mouse="" />
+    <input name="URF_FTYPE" category="VEHICLE" key1="KEY_lalt KEY_o" key2="" button="" device="0" mouse="" />
+    <input name="URF_RMleft" category="VEHICLE" key1="KEY_semicolon" key2="" button="" device="0" mouse="" />
+    <input name="URF_RMright" category="VEHICLE" key1="KEY_quote" key2="" button="" device="0" mouse="" />
+    <input name="URF_TOGGLESHUTOFF" category="VEHICLE" key1="KEY_rightbracket" key2="" button="" device="0" mouse="" />
+<!-- ENDE TEXT 3-------------------------------------------------------------------------------------------------------->
+
+<!-- TEXT 4------------------------------------------------------------------------------------------------------------->
+        <specialization name="urfSeeder" className="UrfSeeder" filename="scripts/urfSeeder.lua"/>
+<!-- ENDE TEXT 4-------------------------------------------------------------------------------------------------------->
+
+<!-- TEXT 5------------------------------------------------------------------------------------------------------------->
+    <sourceFile filename="scripts/UrfSeederEvents.lua" />
+<!-- ENDE TEXT 5-------------------------------------------------------------------------------------------------------->
+
+<!-- TEXT 6------------------------------------------------------------------------------------------------------------->
+      <specialization name="urfSeeder" />
+<!-- ENDE TEXT 6-------------------------------------------------------------------------------------------------------->
+
+<!-- TEXT 6.1----------------------------------------------------------------------------------------------------------->
+  <vehicleTypes>
+    <type name="urfSeeder" className="Vehicle" filename="$dataS/scripts/vehicles/Vehicle.lua">
+         <specialization name="attachable" />
+         <specialization name="fillable" />
+         <specialization name="sowingMachine" />
+         <specialization name="foldable" />
+      <specialization name="urfSeeder" />
+    </type>
+  </vehicleTypes>
+<!-- ENDE TEXT 6.1------------------------------------------------------------------------------------------------------>
+
+<!-- TEXT 6.2----------------------------------------------------------------------------------------------------------->
+    <vehicleTypes>
+      <type name="urfSeeder" className="Vehicle" filename="$dataS/scripts/vehicles/Vehicle.lua">
+      <specialization name="fillable" />
+      <specialization name="attachable" />
+      <specialization name="animatedVehicle" />
+      <specialization name="cylindered" />
+      <specialization name="foldable" />
+      <specialization name="ridgeMarker" />
+      <specialization name="sowingMachine" />
+      <specialization name="urfSeeder" />
+        </type>
+    </vehicleTypes>
+<!-- ENDE TEXT 6.2------------------------------------------------------------------------------------------------------>

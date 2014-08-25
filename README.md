@@ -1,10 +1,15 @@
-urfSeeder v3
+urfSeeder v4
 ============
-This specialization adds under-root fertilization to sowing machines in Farming Simulator 13. 
+urfSeeder is a specialization for Farming Simulator 2013.
+Version 4 adds under-root fertilization to sowing machines for use with SoilMod (Soil Management & Growth Control 1.2.x by Decker_MMIV)
 
-Features: 
-- separate fertilizer tank 
-- toggle fertilization (yes/no) 
-- automatic sprayAreas based on work width of the tool 
-- installation guide included
-- demo mod Amazone EDX 6000-2C included
+**********************************************************
+IF YOU DON´T USE SoilMod IT WILL NOT WORK! Use v3 instead.
+**********************************************************
+
+###Features:
+- separate fertilizer tank
+- enable/disable fertilization
+- change fertilizer type (A/B/C)
+- halfside shutoff for realistic creation of driving lines
+- separate use of ridge markers
